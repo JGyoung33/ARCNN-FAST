@@ -4,31 +4,27 @@
 
 </p>
 <p align="center">
-<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN/master/asset/arcnnmodel.png" width="600">
+<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN-FAST/master/asset/arcnnmodel.png" width="600">
 </p>
 
 </p>
 <p align="center">
-<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN/master/asset/arcnnmodel2.png" width="600">
+<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN-FAST/master/asset/arcnnmodel2.png" width="600">
 </p>
 
 </p>
 <p align="center">
-<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN/master/asset/arcnnresult.png" width="600">
+<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN-FAST/master/asset/arcnnresult.png" width="600">
 </p>
 
 </p>
 <p align="center">
-<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN/master/asset/losshist.png" width="600">
+<img src="https://raw.githubusercontent.com/ppooiiuuyh/ARCNN-FAST/master/asset/losshist.png" width="600">
 </p>
 
 
 
 
-</p>
-<p align="center">
-<img src="https://raw.githubusercontent.com/ppooiiuuyh/ComRecCNN/master/asset/comrecpaperresult.png" width="600">
-</p>
 
 ## Prerequisites
  * python 3.x
