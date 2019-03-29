@@ -137,6 +137,8 @@ if __name__ == '__main__':
     parser.add_argument("--infer_imgpath", default="monarch.bmp")  # monarch.bmp
     parser.add_argument("--type", default="YCbCr", choices=["RGB","Gray","YCbCr"])#YCbCr type uses images preprocessesd by matlab
     parser.add_argument("--c_dim", type=int, default=3) # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--g_type", type=int, default=1)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+
     parser.add_argument("--mode", default="train", choices=["train", "cookbook", "inference", "test_plot"])
 
     parser.add_argument("--learning_rate", type=float, default=1e-6)

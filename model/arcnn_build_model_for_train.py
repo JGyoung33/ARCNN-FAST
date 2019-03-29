@@ -51,11 +51,32 @@ def inner_model(x, scope_name, reuse, is_color=False, is_training=True, output_a
 
 
 
+def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
+    if not is_color :  image_channel = 1
+    else            :  image_channel = 3
+
+    with tf.variable_scope("feature_extraction") as scope:
+        input = x
+        for i in range(4):
+            x = conv(x, 64, kernel= 3, stride= 1, scope = "conv_{}".foarmat(i))
+            x = lrelu(x, alpha=0.1)
+
+        x = conv(x, imac, kernel= 3, stride= 1, scope = "conv_{}".foarmat(i))
+        if verbose :print(x)
+
+        output = x + input
+    return output
+
+
+
 """"================================================================
 * Build model 
 ================================================================="""
 def build_model(input_A,input_B, learning_rate, args=None):
-    p_arcnn = partial(inner_model, is_color=False, is_training=True)
+    if args.g_type == 1:
+        p_arcnn = partial(inner_model, is_color=False, is_training=True)
+    elif args.g_type == 2:
+        p_arcnn = partial(inner_model2, is_color=False, is_training=True)
 
     """ for return """
     images = None
