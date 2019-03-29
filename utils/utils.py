@@ -36,7 +36,7 @@ def cvt_jpeg(imgs):
 
     imgs_ = np.concatenate(imgs_,axis=0).astype(np.float32)/255.0
     diff = time.clock() - start
-    #print("Time: {}".format(diff))
+    print("Time: {}".format(diff))
     #print(imgs.shape)
     return imgs_
 
