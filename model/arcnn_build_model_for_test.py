@@ -15,7 +15,7 @@ from functools import partial
 """"================================================================
 * modules
 ================================================================="""
-def inner_model(x, scope_name, reuse, is_color=False, is_training=True, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
+def inner_model(x, scope_name, reuse, is_color=False, is_training=False, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
     if not is_color:        image_channel = 1
     else:                   image_channel = 3
 
@@ -54,13 +54,13 @@ def inner_model(x, scope_name, reuse, is_color=False, is_training=True, output_a
 """"================================================================
 * Build model 
 ================================================================="""
-def build_model(input_A,input_B, learning_rate, args=None):
+def build_model(input_A,input_B, args=None):
     p_arcnn = partial(inner_model, is_color=False, is_training=True)
 
     """ for return """
-    images = None
+    predictions = None
     train_op = None
-    scalars = None
+    losses = None
 
     with tf.variable_scope("arcnn") as scope:
         #=============================== modules =======================================
@@ -91,7 +91,7 @@ def build_model(input_A,input_B, learning_rate, args=None):
 
 
         # =============================== return dicts  =======================================
-        images = {
+        predictions = {
             "result": tf.concat([input_A, input_A_rec, input_B],axis=1),
         }
 
@@ -99,11 +99,11 @@ def build_model(input_A,input_B, learning_rate, args=None):
             "G_op": G_op,
         }
 
-        scalars = {
+        losses = {
             "loss": loss,
         }
 
-    return train_op, scalars, images
+    return train_op, losses, predictions
 
 
 

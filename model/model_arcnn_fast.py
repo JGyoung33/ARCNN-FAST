@@ -45,8 +45,8 @@ class ARCNN_FAST(object):
         self.train_label = augumentation(self.train_label)
         self.train_input = augumentation(self.train_input)
 
-        # setup test data
-        self.test_input, self.test_label = input_setup(self.args, mode="test")
+        # setup cookbook data
+        self.test_input, self.test_label = input_setup(self.args, mode="cookbook")
         pass
 
 
@@ -264,7 +264,7 @@ class ARCNN_FAST(object):
 
 
 # ==========================================================
-# test
+# cookbook
 # ==========================================================
     def test(self):
         print("Testing...")

@@ -138,7 +138,7 @@ x = conv_pixel_shuffle_up(x, scale_factor=2, use_bias=True, sn=True, scope='pixe
 * `down` ===> [height, width] -> [**height // scale_factor, width // scale_factor**]
 * `up` ===> [height, width] -> [**height \* scale_factor, width \* scale_factor**]
 
-![pixel_shuffle](assets/pixel_shuffle.png)
+![pixel_shuffle](../Tensorflow-Cookbook-masters/assets/pixel_shuffle.png)
 
 
 ---

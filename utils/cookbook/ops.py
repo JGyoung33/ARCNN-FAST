@@ -29,7 +29,10 @@ weight_regularizer_fully = tf.contrib.layers.l2_regularizer(0.0001)
 # padding='SAME' ======> pad = ceil[ (kernel - stride) / 2 ]
 def conv(x, channels, kernel=4, stride=2, pad=0, pad_type='zero', use_bias=True, sn=False, scope='conv_0'):
     with tf.variable_scope(scope):
+        padding = 'SAME'
+
         if pad > 0:
+            padding = 'VALID'
             h = x.get_shape().as_list()[1]
             if h % stride == 0:
                 pad = pad * 2
@@ -50,7 +53,7 @@ def conv(x, channels, kernel=4, stride=2, pad=0, pad_type='zero', use_bias=True,
             w = tf.get_variable("kernel", shape=[kernel, kernel, x.get_shape()[-1], channels], initializer=weight_init,
                                 regularizer=weight_regularizer)
             x = tf.nn.conv2d(input=x, filter=spectral_norm(w),
-                             strides=[1, stride, stride, 1], padding='VALID')
+                             strides=[1, stride, stride, 1], padding=padding)
             if use_bias:
                 bias = tf.get_variable("bias", [channels], initializer=tf.constant_initializer(0.0))
                 x = tf.nn.bias_add(x, bias)
@@ -59,7 +62,7 @@ def conv(x, channels, kernel=4, stride=2, pad=0, pad_type='zero', use_bias=True,
             x = tf.layers.conv2d(inputs=x, filters=channels,
                                  kernel_size=kernel, kernel_initializer=weight_init,
                                  kernel_regularizer=weight_regularizer,
-                                 strides=stride, use_bias=use_bias)
+                                 strides=stride, use_bias=use_bias, padding = padding)
 
         return x
 

@@ -10,7 +10,35 @@ from utils.imresize import *
 import glob, os, re
 import cv2
 from tqdm import tqdm
+import tensorflow as tf
+import numpy as np
 
+import io
+import time
+import numpy as np
+from PIL import Image
+
+def cvt_jpeg(imgs):
+    imgs_ = []
+
+    start = time.clock()
+
+    for img in imgs:
+        # Create BytesIO object
+        output = io.BytesIO()
+        im = Image.fromarray((img*255).astype(np.uint8))
+        im.save(output, format='JPEG', quality=20)
+        nbytes = output.getbuffer().nbytes
+        #print("BytesIO size: {}".format(nbytes))
+
+        # Read back images from BytesIO ito list
+        imgs_.append(np.expand_dims(np.array(Image.open(output)),axis=0))
+
+    imgs_ = np.concatenate(imgs_,axis=0).astype(np.float32)/255.0
+    diff = time.clock() - start
+    #print("Time: {}".format(diff))
+    #print(imgs.shape)
+    return imgs_
 
 def rgb2ycbcr(im):
     '''
@@ -20,6 +48,13 @@ def rgb2ycbcr(im):
     return np.uint8(ycbcr)
     '''
     return cv2.cvtColor(im,cv2.COLOR_RGB2YCR_CB)[:,:,[0,2,1]]
+
+
+def rgb2ycbcr_batch(imgs):
+    if imgs.shape.__len__() >=4 :
+        imgs = np.concatenate([np.expand_dims(cv2.cvtColor(img.astype(np.float32),cv2.COLOR_RGB2YCR_CB)[:,:,[0,2,1]],axis=0) for img in imgs],axis=0)
+    return imgs
+
 
 
 def ycbcr2rgb(im):
@@ -63,7 +98,23 @@ def imsave(image, path):
 
 
 
+def select_summary(learning_rate, predictions, losses):
+    summary_list = []
 
+    for key, val in predictions.items():
+        summary_list.append(
+                        tf.summary.image(key, mkuint8(val), max_outputs=5))
+
+    for key, val in losses.items():
+        summary_list.append(
+                        tf.summary.scalar("losses/" + key, val))
+
+    summary_op = tf.summary.merge(summary_list)
+
+    return summary_op
+
+def mkuint8(image):
+    return tf.cast(image*255, tf.uint8)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -93,9 +144,9 @@ def input_setup_eval(args, mode):
 
         return sub_input_sequence, sub_label_sequence
 
-    elif mode == "test":
+    elif mode == "cookbook":
         nxy = []
-        sub_input_sequence, sub_label_sequence = get_image("test/"+args.test_subdir, args=args)
+        sub_input_sequence, sub_label_sequence = get_image("cookbook/"+args.test_subdir, args=args)
         return sub_input_sequence, sub_label_sequence
 
 
@@ -175,7 +226,7 @@ def input_setup_demo(args, mode):
 
         return sub_input_sequence, sub_label_sequence
 
-    elif mode == "test":
+    elif mode == "cookbook":
         data = prepare_data(args=args, mode=mode)
         for i in range(len(data)):
             input_, label_ = preprocess(data[i], args)  # normalized full-size image
@@ -192,7 +243,7 @@ def prepare_data(args, mode):
         data_dir = os.path.join(os.getcwd(),"dataset", mode, args.train_subdir)
         data = glob.glob(os.path.join(data_dir, "*"))
 
-    elif mode == "test":
+    elif mode == "cookbook":
         data_dir = os.path.join(os.getcwd(), "dataset",mode, args.test_subdir)
         data = glob.glob(os.path.join(data_dir, "*"))
 
@@ -215,7 +266,7 @@ def preprocess(path, args, centercrop = False):
     else : image_croped = modcrop(image, args.scale)
 
 
-    if args.mode == "train" or args.mode == "test":
+    if args.mode == "train" or args.mode == "cookbook":
         label_ = image_croped
 
         input_ = imresize(image_croped, args.scale,output_shape=None)
@@ -277,5 +328,26 @@ def modcrop(image, scale=3):
 
 
 
+def restore_model(FLAGS, sess):
+    t_vars = tf.global_variables()
+    model_saver = tf.train.Saver(max_to_keep=100)
+
+    if FLAGS.restore_model_dir is not None:
+        checkpoint = tf.train.get_checkpoint_state(FLAGS.restore_model_dir)
+        model_saver.restore(
+                sess, tf.train.latest_checkpoint(FLAGS.restore_model_dir))
+        meta_graph_path = checkpoint.model_checkpoint_path + ".meta"
+        step = int(meta_graph_path.split("-")[1].split(".")[0])
+    elif FLAGS.restore_model_file is not None:
+        model_saver.restore(sess, FLAGS.restore_model_file)
+        step = 0
+    else:
+        step = 0
+
+    return step
 
 
+def check_folder(log_dir):
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    return log_dir
