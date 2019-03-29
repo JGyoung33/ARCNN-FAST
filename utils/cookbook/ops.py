@@ -18,7 +18,10 @@ import numpy as np
 # l2_decay : tf.contrib.layers.l2_regularizer(0.0001)
 # orthogonal_regularizer : orthogonal_regularizer(0.0001) # orthogonal_regularizer_fully(0.0001)
 
-weight_init = tf.truncated_normal_initializer(mean=0.0, stddev=0.02)
+#weight_init = tf.truncated_normal_initializer(mean=0.0, stddev=0.02)
+weight_init = tf.contrib.layers.variance_scaling_initializer()
+
+
 weight_regularizer = tf.contrib.layers.l2_regularizer(0.0001)
 weight_regularizer_fully = tf.contrib.layers.l2_regularizer(0.0001)
 

@@ -18,9 +18,9 @@ def train(args, sess):
         os.path.normcase('../dataset/train/BSD400'),
         args.batch_size, args.target_size, is_color=True,seed = 0)
 
-    dataTrain_handler = TestDataHandler(
+    dataTest_handler = TestDataHandler(
         os.path.normcase('../dataset/test/Set5'),
-        args.batch_size, args.target_size, is_color=True,seed = 0)
+        args.batch_size, args.target_size, is_color=True)
 
 
     BS = args.batch_size
