@@ -54,7 +54,7 @@ def inner_model(x, scope_name, reuse, is_color=False, is_training=False, output_
 """"================================================================
 * Build model 
 ================================================================="""
-def build_model(input_A,input_B, args=None):
+def build_model(input_A,input_B, learning_rate, args=None, ):
     p_arcnn = partial(inner_model, is_color=False, is_training=True)
 
     """ for return """
