@@ -58,10 +58,10 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
     with tf.variable_scope("feature_extraction") as scope:
         input = x
         for i in range(4):
-            x = conv(x, 64, kernel= 3, stride= 1, scope = "conv_{}".foarmat(i))
+            x = conv(x, 64, kernel= 3, stride= 1, scope = "conv_{}".format(i))
             x = lrelu(x, alpha=0.1)
 
-        x = conv(x, imac, kernel= 3, stride= 1, scope = "conv_{}".foarmat(i))
+        x = conv(x, imac, kernel= 3, stride= 1, scope = "conv_last")
         if verbose :print(x)
 
         output = x + input
