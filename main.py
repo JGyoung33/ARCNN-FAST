@@ -2,12 +2,8 @@ import argparse
 import os
 import pprint
 import tensorflow as tf
+from model.model_arcnn_fast import ARCNN_FAST
 
-from model_arcnn_fast import ARCNN_FAST
-
-import matplotlib.pyplot as plt
-import numpy as np
-from imresize import *
 
 if __name__ == '__main__':
 # =======================================================

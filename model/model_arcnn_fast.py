@@ -1,15 +1,9 @@
 import os
 import time
 import tensorflow as tf
-from utils import *
-from imresize import *
-from metrics import *
-import matplotlib.pyplot as plt
-import pprint
-import math
+from utils.imresize import *
+from utils.metrics import *
 import numpy as np
-import sys
-import glob
 from tqdm import tqdm
 
 
