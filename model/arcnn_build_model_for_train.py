@@ -63,7 +63,7 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
                 x = lrelu(x, alpha=0.1)
 
         with tf.variable_scope("reconstruction", reuse=reuse) as scope:
-            x = conv(x, imac, kernel= 3, stride= 1, scope = "conv_last")
+            x = conv(x, image_channel, kernel= 3, stride= 1, scope = "conv_last")
             output = x + input
     return output
 
