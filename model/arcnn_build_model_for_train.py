@@ -55,16 +55,16 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
     if not is_color :  image_channel = 1
     else            :  image_channel = 3
 
-    with tf.variable_scope("feature_extraction") as scope:
+    with tf.variable_scope(scope_name, reuse=reuse) as vscope:
         input = x
-        for i in range(4):
-            x = conv(x, 64, kernel= 3, stride= 1, scope = "conv_{}".format(i))
-            x = lrelu(x, alpha=0.1)
+        with tf.variable_scope("feature_extraction", reuse=reuse) as scope:
+            for i in range(4):
+                x = conv(x, 64, kernel= 3, stride= 1, scope = "conv_{}".format(i))
+                x = lrelu(x, alpha=0.1)
 
-        x = conv(x, imac, kernel= 3, stride= 1, scope = "conv_last")
-        if verbose :print(x)
-
-        output = x + input
+        with tf.variable_scope("reconstruction", reuse=reuse) as scope:
+            x = conv(x, imac, kernel= 3, stride= 1, scope = "conv_last")
+            output = x + input
     return output
 
 
