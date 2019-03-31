@@ -18,10 +18,6 @@ def train(args, sess):
         os.path.normcase('../dataset/train/BSD400'),
         args.batch_size, args.target_size, is_color=True,seed = 0)
 
-    dataTest_handler = TestDataHandler(
-        os.path.normcase('../dataset/test/Set5'),
-        args.batch_size, args.target_size, is_color=True)
-
 
     BS = args.batch_size
     SZ = args.target_size
@@ -32,6 +28,12 @@ def train(args, sess):
         """ set placehodlers """
         input_A = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_A')
         input_B = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_B')
+
+        input_TEST_A = tf.placeholder(tf.float32, shape=[1, None, None, CH], name='input_Test_A')
+        input_TEST_B = tf.placeholder(tf.float32, shape=[1, None, None, CH], name='input_Test_B')
+
+
+
         global_step = tf.Variable(0, trainable=False)
         incre_global_step = tf.assign(global_step, global_step + 1)
 
@@ -42,9 +44,15 @@ def train(args, sess):
 
         """ build model """
         print("Build model graph...")
-        [train_op, scalars, images] = build_model(input_A, input_B, learning_rate = learning_rate, args=args,)
+        build_model_template = tf.make_template('scale_by_y', build_model, learning_rate = learning_rate, args=args)
+        [train_op, scalars, images] = build_model_template(input_A, input_B, learning_rate = learning_rate, args=args,)
+        [_, scalars_test, images_test] = build_model_template(input_TEST_A, input_TEST_B, learning_rate = learning_rate, args=args,)
         summary_writer = tf.summary.FileWriter(args.checkpoint_dir, graph=sess.graph)
         summary_op = select_summary(learning_rate, images, scalars)
+        summary_writer_test = tf.summary.FileWriter(args.checkpoint_dir+"_test", graph=sess.graph)
+        summary_op_test = select_summary(learning_rate, images_test, scalars_test)
+
+
 
 
         """ init model """
@@ -76,22 +84,65 @@ def train(args, sess):
             fetch_dict = {
                 "G_op": train_op["G_op"],
                 "loss": scalars["loss"],
+                "psnr": scalars["psnr"],
                 "gstep": incre_global_step,
             }
+
+
+            fetch_dict_test = {
+                "loss": scalars_test["loss"],
+                "psnr": scalars_test["psnr"],
+            }
+
+
+
 
             """ run """
             result = sess.run(fetch_dict, feed_dict={input_A: dataA, input_B: dataB})
 
+
             """ post_processing """
             # Print log
             if global_step.eval() % 1 == 0:
-                print("Iteration %d : loss %f" % (global_step.eval(), result["loss"]))
+                print("Iteration %d : loss %f psrn %f" % (global_step.eval(), result["loss"], result["psnr"]))
 
-            if global_step.eval() % 5 == 0:
+            if global_step.eval() % 1 == 0:
+                psnr = []
+                elapse = []
+                for i in range(7):
+                    dataTest_handler = TestDataHandler(
+                        # os.path.normcase('../dataset/train/BSD400'),
+                        os.path.normcase('../dataset/test/Set5'),
+                        2000, is_color=True)
+
+                    start = time.time()
+                    dataTest,_,_ = dataTest_handler.next()
+                    dataTest_ycbcr = rgb2ycbcr_batch(dataTest)
+                    dataTestB = dataTest_ycbcr[:,:,:,0:1]
+
+                    dataTest_jpeg = cvt_jpeg(dataTest)
+                    dataTest_jpeg_ycbcr = rgb2ycbcr_batch(dataTest_jpeg)
+                    dataTestA = dataTest_jpeg_ycbcr[:,:,:,0:1]
+
+                    result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
+                    psnr.append(result_test["psnr"])
+                    elapse.append(time.time() - start)
+                print("Iteration %d : loss %f psnr_test %f elapseL %f" % (global_step.eval(), result_test["loss"], np.mean(psnr), np.mean(elapse)))
+
+
+
+            if global_step.eval() % 10 == 0:
                 fetch_dict = {"summary": summary_op}
                 result = sess.run(fetch_dict, feed_dict={input_A: dataA, input_B: dataB})
                 summary_writer.add_summary(result["summary"], global_step.eval())
                 summary_writer.flush()
+
+
+                fetch_dict_test = {"summary": summary_op_test}
+                result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
+                summary_writer_test.add_summary(result_test["summary"], global_step.eval())
+                summary_writer_test.flush()
+
 
 
 
@@ -137,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument("--infer_imgpath", default="monarch.bmp")  # monarch.bmp
     parser.add_argument("--type", default="YCbCr", choices=["RGB","Gray","YCbCr"])#YCbCr type uses images preprocessesd by matlab
     parser.add_argument("--c_dim", type=int, default=3) # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
-    parser.add_argument("--g_type", type=int, default=1)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--g_type", type=int, default=2)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
 
     parser.add_argument("--mode", default="train", choices=["train", "cookbook", "inference", "test_plot"])
 
@@ -165,6 +216,7 @@ if __name__ == '__main__':
     print("Eaxperiment tag : " + args.exp_tag)
     pp.pprint(args)
     check_folder(args.checkpoint_dir)
+    check_folder(args.checkpoint_dir+"_test")
     print("=====================================================================")
 
 

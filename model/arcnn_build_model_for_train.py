@@ -122,6 +122,7 @@ def build_model(input_A,input_B, learning_rate, args=None):
 
         scalars = {
             "loss": loss,
+            "psnr": tf.reduce_mean(tf.image.psnr(input_A_rec, input_B, max_val=1.0))
         }
 
     return train_op, scalars, images
