@@ -1,3 +1,4 @@
+import datetime
 import sys
 sys.path.append('../')
 import argparse
@@ -42,7 +43,7 @@ def train(args, sess):
     """ init model """
     model_saver = tf.train.Saver(max_to_keep=100)
     tf.global_variables_initializer().run()
-    #step = restore_model(args, sess)
+    step = restore_model(args, sess)
 
 
     """ prepare fetch_dict """
@@ -69,6 +70,10 @@ def train(args, sess):
     print("psnr_test %f elapse %f" % (np.mean(psnr), np.mean(elapse)))
 
 
+    """ save model for porting """
+    save_path = model_saver.save(sess, os.path.join(args.checkpoint_dir, "model.ckpt"), global_step=0)
+
+
 
 
 """=====================================================================================================================
@@ -87,12 +92,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #===================== common configuration ============================================
     parser.add_argument("--exp_tag", type=str, default="ARCNN tensorflow. Implemented by Dohyun Kim")
+    parser.add_argument("--model_name", type=str, default="ARCNN")
+    parser.add_argument("--model_tag", type=str, default="default")
     parser.add_argument("--gpu", type=int, default=0)  # -1 for CPU
     parser.add_argument("--test_dir", default="Set5")
     parser.add_argument("--g_type", type=int, default=2)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
-    parser.add_argument("--checkpoint_dir", default="../asset/checkpoint")
-    parser.add_argument("--result_dir", default="result")
-    parser.add_argument("--save_extension", default=".jpg", choices=["jpg", "png"])
+    parser.add_argument("--restor_model_file", default="default")
+    parser.add_argument("--checkpoint_dir", default="../asset/checkpoint/infer")
 
 
 
@@ -100,8 +106,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print("Eaxperiment tag : " + args.exp_tag)
     pp.pprint(args)
-    check_folder(args.checkpoint_dir)
-    check_folder(args.checkpoint_dir+"_test")
+    time_now = datetime.datetime.now()
+    name = "%s_%s_%02d_%02d_%02d_%02d_%02d" % (args.model_name, args.model_tag,
+                                               time_now.month, time_now.day, time_now.hour, time_now.minute,
+                                               time_now.second)
+
+    args.checkpoint_dir = os.path.join(args.checkpoint_dir, name)
+    check_folder(os.path.join(args.checkpoint_dir))
     print("=====================================================================")
 
 

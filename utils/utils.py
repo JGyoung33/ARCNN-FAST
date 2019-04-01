@@ -335,22 +335,11 @@ def modcrop(image, scale=3):
 
 
 
-def restore_model(FLAGS, sess):
+def restore_model(args, sess):
     t_vars = tf.global_variables()
     model_saver = tf.train.Saver(max_to_keep=100)
-
-    if FLAGS.restore_model_dir is not None:
-        checkpoint = tf.train.get_checkpoint_state(FLAGS.restore_model_dir)
-        model_saver.restore(
-                sess, tf.train.latest_checkpoint(FLAGS.restore_model_dir))
-        meta_graph_path = checkpoint.model_checkpoint_path + ".meta"
-        step = int(meta_graph_path.split("-")[1].split(".")[0])
-    elif FLAGS.restore_model_file is not None:
-        model_saver.restore(sess, FLAGS.restore_model_file)
-        step = 0
-    else:
-        step = 0
-
+    model_saver.restore(sess, args.restore_model_file)
+    step = 0
     return step
 
 
