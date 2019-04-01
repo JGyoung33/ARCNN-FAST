@@ -4,7 +4,7 @@ import argparse
 import os
 import pprint
 import tensorflow as tf
-from model.arcnn_build_model_for_train import build_model
+from model.arcnn_build_model_for_train_temp import build_model
 from utils.data_utils.train_patch_data_handler import TrainPatchDataHandler
 from utils.data_utils.test_data_handler import TestDataHandler
 from utils.utils import *
@@ -17,6 +17,12 @@ def train(args, sess):
     dataTrain_handler = TrainPatchDataHandler(
         os.path.normcase('../dataset/train/BSD400'),
         args.batch_size, args.target_size, is_color=True,seed = 0)
+
+    dataTest_handler = TestDataHandler(
+        # os.path.normcase('../dataset/train/BSD400'),
+        os.path.normcase('../dataset/test/Set5'),
+        2000, is_color=True)
+
 
 
     BS = args.batch_size
@@ -47,6 +53,7 @@ def train(args, sess):
         build_model_template = tf.make_template('scale_by_y', build_model, learning_rate = learning_rate, args=args)
         [train_op, scalars, images] = build_model_template(input_A, input_B, learning_rate = learning_rate, args=args,)
         [_, scalars_test, images_test] = build_model_template(input_TEST_A, input_TEST_B, learning_rate = learning_rate, args=args,)
+
         summary_writer = tf.summary.FileWriter(args.checkpoint_dir, graph=sess.graph)
         summary_op = select_summary(learning_rate, images, scalars)
         summary_writer_test = tf.summary.FileWriter(args.checkpoint_dir+"_test", graph=sess.graph)
@@ -63,12 +70,13 @@ def train(args, sess):
 
         while True: # We manually shutdown
             dataTrain = dataTrain_handler.next()
-            dataTrain_ycbcr = rgb2ycbcr_batch(dataTrain)
-            dataB = dataTrain_ycbcr[:,:,:,0:1]
+            dataA = cvt_jpeg(dataTrain)
+            dataB = dataTrain
 
-            dataTrain_jpeg = cvt_jpeg(dataTrain)
-            dataTrain_jpeg_ycbcr = rgb2ycbcr_batch(dataTrain_jpeg)
-            dataA = dataTrain_jpeg_ycbcr[:,:,:,0:1]
+            dataTest, _, _ = dataTest_handler.next()
+            dataTestA = cvt_jpeg(dataTest)
+            dataTestB = dataTest
+
 
 
             #plt.imshow(np.concatenate([dataA,dataB],axis=2)[2,:,:,0],cmap='gray')
@@ -90,7 +98,7 @@ def train(args, sess):
 
 
             fetch_dict_test = {
-                #"loss": scalars_test["loss"],
+                "loss": scalars_test["loss"],
                 "psnr": scalars_test["psnr"],
             }
 
@@ -99,6 +107,7 @@ def train(args, sess):
 
             """ run """
             result = sess.run(fetch_dict, feed_dict={input_A: dataA, input_B: dataB})
+            result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
 
 
             """ post_processing """
@@ -117,16 +126,14 @@ def train(args, sess):
 
                     start = time.time()
                     dataTest,_,_ = dataTest_handler.next()
-                    dataTest_ycbcr = rgb2ycbcr_batch(dataTest)
-                    dataTestB = dataTest_ycbcr[:,:,:,0:1]
+                    dataTestA = cvt_jpeg(dataTest)
+                    dataTestB = dataTest
 
-                    dataTest_jpeg = cvt_jpeg(dataTest)
-                    dataTest_jpeg_ycbcr = rgb2ycbcr_batch(dataTest_jpeg)
-                    dataTestA = dataTest_jpeg_ycbcr[:,:,:,0:1]
+
                     result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
                     psnr.append(result_test["psnr"])
                     elapse.append(time.time() - start)
-                print("Iteration %d : psnr_test %f elapse %f" % (global_step.eval(), np.mean(psnr), np.mean(elapse)))
+                print("Iteration %d : loss %f psnr_test %f elapse %f" % (global_step.eval(), result_test["loss"], np.mean(psnr), np.mean(elapse)))
 
 
 
@@ -175,7 +182,7 @@ if __name__ == '__main__':
     parser.add_argument("--epoch", type=int, default=80)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--target_size", type=int, default=64)
-    parser.add_argument("--is_color", type=bool, default=False)
+    parser.add_argument("--is_color", type=bool, default=True)
 
     parser.add_argument("--stride_size", type=int, default=20)
     parser.add_argument("--deconv_stride", type = int, default = 2)

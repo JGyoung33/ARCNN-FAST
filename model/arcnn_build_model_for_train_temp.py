@@ -1,3 +1,4 @@
+import argparse
 import sys
 sys.path.append('../')
 import os
@@ -15,7 +16,7 @@ from functools import partial
 """"================================================================
 * modules
 ================================================================="""
-def inner_model(x, scope_name, reuse, is_color=False, is_training=False, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
+def inner_model(x, scope_name, reuse, is_color=False, is_training=True, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
     if not is_color:        image_channel = 1
     else:                   image_channel = 3
 
@@ -50,6 +51,7 @@ def inner_model(x, scope_name, reuse, is_color=False, is_training=False, output_
 
 
 
+
 def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
     if not is_color :  image_channel = 1
     else            :  image_channel = 3
@@ -71,25 +73,30 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
 """"================================================================
 * Build model 
 ================================================================="""
-def build_model_for_test(input_A, args=None, ):
-    p_arcnn = partial(inner_model, is_color=False, is_training=True)
+def build_model(input_A,input_B, learning_rate, args=None):
+    if args.g_type == 1:
+        p_arcnn = partial(inner_model, is_color=False, is_training=True)
+    elif args.g_type == 2:
+        p_arcnn = partial(inner_model2, is_color=False, is_training=True)
 
     """ for return """
-    predictions = None
+    images = None
     train_op = None
-    losses = None
+    scalars = None
 
     with tf.variable_scope("arcnn") as scope:
         #=============================== modules =======================================
         input_A_yuv = tf.image.rgb_to_yuv(input_A)
-        print(input_A_yuv)
+        input_A_y, input_A_uv = tf.split(input_A_yuv, [1,2], -1)
+        input_B_yuv = tf.image.rgb_to_yuv(input_B)
+        input_B_y, input_B_uv = tf.split(input_B_yuv, [1,2], -1)
 
-        input_A_rec = p_arcnn(input_A, scope_name = "generator", reuse=False)
+        input_A_y_rec = p_arcnn(input_A_y, scope_name = "generator", reuse=False)
 
 
         # =============================== losses =======================================
         """ loss - supervised loss """
-        L1_loss = tf.reduce_mean(tf.abs(input_A_rec - input_B))  # L1 is betther than L2
+        L1_loss = tf.reduce_mean(tf.abs(input_A_y_rec - input_B_y))  # L1 is betther than L2
 
         """ merge losses """
         loss = L1_loss
@@ -102,16 +109,32 @@ def build_model_for_test(input_A, args=None, ):
         for v in t_vars: print(v)
         print("==========================================")
 
+        #seperated for handling adversarial loss. but it is not necsessary in this project
+        G_vars = [var for var in t_vars if "generator" in var.name]
+        optimizer = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            G_op = optimizer.minimize(loss, var_list=G_vars)
+
+
         # =============================== return dicts  =======================================
-        predictions = {
+        input_A_rec = tf.image.yuv_to_rgb(tf.concat([input_A_y_rec,input_A_uv],axis=-1))
+
+        images = {
             "result": tf.concat([input_A, input_A_rec, input_B],axis=1),
         }
 
-        losses = {
-            "loss": loss,
+        train_op = {
+            "G_op": G_op,
         }
 
-    return train_op, losses, predictions
+        scalars = {
+            "loss": loss,
+            "psnr_y": tf.reduce_mean(tf.image.psnr(input_A_y, input_B_y, max_val=1.0)),
+            "psnr": tf.reduce_mean(tf.image.psnr(input_A_rec, input_B, max_val=1.0))
+        }
+
+    return train_op, scalars, images
 
 
 
@@ -119,11 +142,51 @@ def build_model_for_test(input_A, args=None, ):
 * Module test 
 ================================================================="""
 if __name__ == "__main__":
-    BS,SZ,SZ,CH = (512,512,1)
+    parser = argparse.ArgumentParser()
+    #===================== common configuration ============================================
+    parser.add_argument("--exp_tag", type=str, default="ARCNN tensorflow. Implemented by Dohyun Kim")
+    parser.add_argument("--gpu", type=int, default=0)  # -1 for CPU
+
+    parser.add_argument("--epoch", type=int, default=80)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--target_size", type=int, default=64)
+    parser.add_argument("--is_color", type=bool, default=False)
+
+    parser.add_argument("--stride_size", type=int, default=20)
+    parser.add_argument("--deconv_stride", type = int, default = 2)
+    parser.add_argument("--scale", type=int, default=1)
+    parser.add_argument("--jpgqfactor", type= int, default =60)
+
+    parser.add_argument("--train_subdir", default="BSD400")
+    parser.add_argument("--test_subdir", default="Set5")
+    parser.add_argument("--infer_imgpath", default="monarch.bmp")  # monarch.bmp
+    parser.add_argument("--type", default="YCbCr", choices=["RGB","Gray","YCbCr"])#YCbCr type uses images preprocessesd by matlab
+    parser.add_argument("--c_dim", type=int, default=3) # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--g_type", type=int, default=2)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+
+    parser.add_argument("--mode", default="train", choices=["train", "cookbook", "inference", "test_plot"])
+
+    parser.add_argument("--learning_rate", type=float, default=1e-6)
+    parser.add_argument("--min_lr", type=float, default=1e-7)
+    parser.add_argument("--lr_decay_rate", type=float, default=1e-1)
+    parser.add_argument("--lr_step_size", type=int, default=20)  # 9999 for no decay
+    parser.add_argument("--checkpoint_dir", default="../asset/checkpoint")
+    parser.add_argument("--cpkt_itr", default=0)  # -1 for latest, set 0 for training from scratch
+    parser.add_argument("--save_period", type=int, default=1)
+
+    parser.add_argument("--result_dir", default="result")
+    parser.add_argument("--save_extension", default=".jpg", choices=["jpg", "png"])
+
+
+
+    print("=====================================================================")
+    args = parser.parse_args()
+
+    BS,SZ,SZ,CH = (4,512,512,3)
     input_A = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_A')
     input_B = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_B')
     inner_model(input_A,"ARCNN", reuse = False, is_color= False, verbose=True)
-    build_model_for_test(input_A)
+    build_model(input_A,input_B, learning_rate=0.1, args = args)
 
 
 
