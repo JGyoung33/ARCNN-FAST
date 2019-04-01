@@ -128,7 +128,9 @@ def build_model_for_test(input_A,input_B=None, args=None, ):
         print("==========================================")
 
         # =============================== return dicts  =======================================
-        input_A_rec = tf.image.yuv_to_rgb(tf.concat([input_A_y_rec,input_A_uv],axis=-1))
+        input_A_rec = tf.identity(tf.image.yuv_to_rgb(tf.concat([input_A_y_rec,input_A_uv],axis=-1)),"output_recon")
+        psnr_y = tf.identity(tf.reduce_mean(tf.image.psnr(input_A_y, input_B_y, max_val=1.0)),"ourpur_psnr_y")
+        psnr = tf.identity(tf.reduce_mean(tf.image.psnr(input_A_rec, input_B, max_val=1.0)), "ourpur_psnr")
 
         if input_B != None:
             predictions = {
@@ -137,8 +139,8 @@ def build_model_for_test(input_A,input_B=None, args=None, ):
             }
 
             losses = {
-                "psnr_y": tf.reduce_mean(tf.image.psnr(input_A_y, input_B_y, max_val=1.0)),
-                "psnr": tf.reduce_mean(tf.image.psnr(input_A_rec, input_B, max_val=1.0))
+                "psnr_y": psnr_y,
+                "psnr": psnr
             }
 
         else :

@@ -53,7 +53,7 @@ def train(args, sess):
 
         start_learning_rate = args.learning_rate
         learning_rate = tf.train.exponential_decay(start_learning_rate,
-                                                   global_step, 100000, 0.8, staircase=True)
+                                                   global_step, 2000, 0.1, staircase=True)
 
 
         """ build model """
@@ -101,10 +101,10 @@ def train(args, sess):
 
             """ post_processing """
             # Print log
-            if global_step.eval() % 1 == 0:
+            if global_step.eval() % 10 == 0:
                 print("Iteration %d : loss %f psrn %f" % (global_step.eval(), result["loss"], result["psnr"]))
 
-            if global_step.eval() % 1 == 0:
+            if global_step.eval() % 10 == 0:
                 psnr = []
                 elapse = []
                 for test_img in test_imgs:
@@ -120,7 +120,7 @@ def train(args, sess):
 
 
 
-            if global_step.eval() % 10 == 0:
+            if global_step.eval() % 50 == 0:
                 fetch_dict_summary = {"summary": summary_op}
                 result = sess.run(fetch_dict_summary, feed_dict={input_A: dataA, input_B: dataB})
                 summary_writer.add_summary(result["summary"], global_step.eval())
@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--mode", default="train", choices=["train", "cookbook", "inference", "test_plot"])
 
-    parser.add_argument("--learning_rate", type=float, default=1e-6)
+    parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--min_lr", type=float, default=1e-7)
     parser.add_argument("--lr_decay_rate", type=float, default=1e-1)
     parser.add_argument("--lr_step_size", type=int, default=20)  # 9999 for no decay
