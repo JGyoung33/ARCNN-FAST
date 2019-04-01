@@ -57,7 +57,7 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
     with tf.variable_scope(scope_name, reuse=reuse) as vscope:
         input = x
         with tf.variable_scope("feature_extraction", reuse=reuse) as scope:
-            for i in range(4):
+            for i in range(3):
                 x = conv(x, 64, kernel= 3, stride= 1, scope = "conv_{}".format(i))
                 x = lrelu(x, alpha=0.1)
 
@@ -66,13 +66,44 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
             output = x + input
     return output
 
+def inner_model3(x, scope_name, reuse, is_color=False, is_training=False, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
+    if not is_color:        image_channel = 1
+    else:                   image_channel = 3
 
+    with tf.variable_scope(scope_name, reuse=reuse) as vscope:
+        input = x
+        with tf.variable_scope("feature_extraction", reuse=reuse) as scope:
+            x = conv(x, 64, kernel= 9, stride= 1, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+            if verbose :print(x)
+
+        with tf.variable_scope("feature_enhancement", reuse=reuse) as scope:
+            x = conv(x, 32, kernel= 1, stride= 2, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+
+            x = conv(x, 32, kernel= 7, stride= 1, scope = "conv_1")
+            x = lrelu(x, alpha=0.1)
+            if verbose :print(x)
+
+        with tf.variable_scope("mapping", reuse=reuse) as scope:
+            x = conv(x, 64, kernel= 1, stride= 1, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+
+        with tf.variable_scope("reconstruction", reuse=reuse) as scope:
+            x = conv(x, 4, kernel= 1, stride= 1, scope = "conv_0")
+            x = tf.depth_to_space(x, block_size=2)
+            if verbose: print(x)
+
+        output = x + input
+        if verbose: print(output)
+
+    return output
 
 """"================================================================
 * Build model 
 ================================================================="""
-def build_model_for_test(input_A, args=None, ):
-    p_arcnn = partial(inner_model, is_color=False, is_training=True)
+def build_model_for_test(input_A,input_B=None, args=None, ):
+    p_arcnn = partial(inner_model3, is_color=False, is_training=True)
 
     """ for return """
     predictions = None
@@ -82,18 +113,12 @@ def build_model_for_test(input_A, args=None, ):
     with tf.variable_scope("arcnn") as scope:
         #=============================== modules =======================================
         input_A_yuv = tf.image.rgb_to_yuv(input_A)
-        print(input_A_yuv)
+        input_A_y, input_A_uv = tf.split(input_A_yuv, [1,2], -1)
+        input_A_y_rec = p_arcnn(input_A_y, scope_name = "generator", reuse=False)
 
-        input_A_rec = p_arcnn(input_A, scope_name = "generator", reuse=False)
-
-
-        # =============================== losses =======================================
-        """ loss - supervised loss """
-        L1_loss = tf.reduce_mean(tf.abs(input_A_rec - input_B))  # L1 is betther than L2
-
-        """ merge losses """
-        loss = L1_loss
-
+        if input_B != None:
+            input_B_yuv = tf.image.rgb_to_yuv(input_B)
+            input_B_y, input_B_uv = tf.split(input_B_yuv, [1, 2], -1)
 
         # ============================= optimizeres =====================================
         """ mark trainable varables and set train_op"""
@@ -103,13 +128,25 @@ def build_model_for_test(input_A, args=None, ):
         print("==========================================")
 
         # =============================== return dicts  =======================================
-        predictions = {
-            "result": tf.concat([input_A, input_A_rec, input_B],axis=1),
-        }
+        input_A_rec = tf.image.yuv_to_rgb(tf.concat([input_A_y_rec,input_A_uv],axis=-1))
 
-        losses = {
-            "loss": loss,
-        }
+        if input_B != None:
+            predictions = {
+                "result_concat": tf.concat([input_A, input_A_rec,input_B],axis=1),
+                "result": input_A_rec
+            }
+
+            losses = {
+                "psnr_y": tf.reduce_mean(tf.image.psnr(input_A_y, input_B_y, max_val=1.0)),
+                "psnr": tf.reduce_mean(tf.image.psnr(input_A_rec, input_B, max_val=1.0))
+            }
+
+        else :
+            predictions = {
+                "result_concat": tf.concat([input_A, input_A_rec],axis=1),
+                "result": input_A_rec
+            }
+
 
     return train_op, losses, predictions
 
@@ -119,10 +156,10 @@ def build_model_for_test(input_A, args=None, ):
 * Module test 
 ================================================================="""
 if __name__ == "__main__":
-    BS,SZ,SZ,CH = (512,512,1)
+    BS,SZ,SZ,CH = (1,512,512,3)
     input_A = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_A')
     input_B = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_B')
-    inner_model(input_A,"ARCNN", reuse = False, is_color= False, verbose=True)
+    inner_model3(input_A,"ARCNN", reuse = False, is_color= False, verbose=True)
     build_model_for_test(input_A)
 
 

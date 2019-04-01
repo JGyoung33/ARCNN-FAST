@@ -41,6 +41,7 @@ def augmentation(image, augment_size):
     image = tf.random_crop(image, ori_image_shape, seed=seed)
     return image
 
+
 def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)
 

@@ -18,10 +18,18 @@ def train(args, sess):
         os.path.normcase('../dataset/train/BSD400'),
         args.batch_size, args.target_size, is_color=True,seed = 0)
 
-    dataTest_handler = TestDataHandler(
-        # os.path.normcase('../dataset/train/BSD400'),
-        os.path.normcase('../dataset/test/Set5'),
-        2000, is_color=True)
+    test_img_paths = sorted(glob(os.path.join(os.path.normcase('../dataset/test/Set5'),"*.*")))
+    test_imgs = []
+    print(test_img_paths)
+    for img_path in test_img_paths:
+        img = cv2.imread(img_path).astype(np.float32)[...,::-1]
+        img /= 255.0
+        h, w, c = img.shape
+        h_ = h - h% 2
+        w_ = w - w% 2
+        img = cv2.resize(img, (int(w_), int(h_))).reshape([1, int(h_), int(w_), c])
+        test_imgs.append(img)
+
 
 
 
@@ -68,46 +76,27 @@ def train(args, sess):
         #step = restore_model(args, sess)
 
 
+
+        """ prepare fetch_dict """
+        fetch_dict = {
+            "G_op": train_op["G_op"],
+            "loss": scalars["loss"],
+            "psnr": scalars["psnr"],
+            "gstep": incre_global_step,
+        }
+
+        fetch_dict_test = {
+            "loss": scalars_test["loss"],
+            "psnr": scalars_test["psnr"],
+        }
+
         while True: # We manually shutdown
-            dataTrain = dataTrain_handler.next()
-            dataA = cvt_jpeg(dataTrain)
-            dataB = dataTrain
-
-            dataTest, _, _ = dataTest_handler.next()
-            dataTestA = cvt_jpeg(dataTest)
-            dataTestB = dataTest
-
-
-
-            #plt.imshow(np.concatenate([dataA,dataB],axis=2)[2,:,:,0],cmap='gray')
-            #plt.show()
-            #plt.imshow(np.concatenate([dataA,dataB],axis=2)[3,:,:,0],cmap='gray')
-            #plt.show()
-
-            #print(dataTrain.dtype,np.max(dataTrain))
-            #print(dataA.dtype,np.max(dataA))
-
-
-            """ prepare fetch_dict """
-            fetch_dict = {
-                "G_op": train_op["G_op"],
-                "loss": scalars["loss"],
-                "psnr": scalars["psnr"],
-                "gstep": incre_global_step,
-            }
-
-
-            fetch_dict_test = {
-                "loss": scalars_test["loss"],
-                "psnr": scalars_test["psnr"],
-            }
-
-
-
 
             """ run """
+            dataTrain = dataTrain_handler.next()
+            dataA,bytes_list = cvt_jpeg(dataTrain)
+            dataB = dataTrain
             result = sess.run(fetch_dict, feed_dict={input_A: dataA, input_B: dataB})
-            result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
 
 
             """ post_processing """
@@ -118,17 +107,11 @@ def train(args, sess):
             if global_step.eval() % 1 == 0:
                 psnr = []
                 elapse = []
-                for i in range(7):
-                    dataTest_handler = TestDataHandler(
-                        # os.path.normcase('../dataset/train/BSD400'),
-                        os.path.normcase('../dataset/test/Set5'),
-                        2000, is_color=True)
+                for test_img in test_imgs:
 
                     start = time.time()
-                    dataTest,_,_ = dataTest_handler.next()
-                    dataTestA = cvt_jpeg(dataTest)
-                    dataTestB = dataTest
-
+                    dataTestA,bytes_list = cvt_jpeg(test_img)
+                    dataTestB = test_img
 
                     result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
                     psnr.append(result_test["psnr"])
@@ -138,18 +121,20 @@ def train(args, sess):
 
 
             if global_step.eval() % 10 == 0:
-                fetch_dict = {"summary": summary_op}
-                result = sess.run(fetch_dict, feed_dict={input_A: dataA, input_B: dataB})
+                fetch_dict_summary = {"summary": summary_op}
+                result = sess.run(fetch_dict_summary, feed_dict={input_A: dataA, input_B: dataB})
                 summary_writer.add_summary(result["summary"], global_step.eval())
                 summary_writer.flush()
 
 
-                fetch_dict_test = {"summary": summary_op_test}
-                result_test = sess.run(fetch_dict_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
+                dataTest = test_imgs[-1]
+                dataTestA, bytes_list = cvt_jpeg(dataTest)
+                dataTestB = dataTest
+
+                fetch_dict_summary_test = {"summary": summary_op_test}
+                result_test = sess.run(fetch_dict_summary_test, feed_dict={input_TEST_A: dataTestA, input_TEST_B: dataTestB})
                 summary_writer_test.add_summary(result_test["summary"], global_step.eval())
                 summary_writer_test.flush()
-
-
 
 
 
@@ -194,7 +179,7 @@ if __name__ == '__main__':
     parser.add_argument("--infer_imgpath", default="monarch.bmp")  # monarch.bmp
     parser.add_argument("--type", default="YCbCr", choices=["RGB","Gray","YCbCr"])#YCbCr type uses images preprocessesd by matlab
     parser.add_argument("--c_dim", type=int, default=3) # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
-    parser.add_argument("--g_type", type=int, default=2)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--g_type", type=int, default=3)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
 
     parser.add_argument("--mode", default="train", choices=["train", "cookbook", "inference", "test_plot"])
 

@@ -69,6 +69,37 @@ def inner_model2(x, scope_name, reuse, is_color=False, is_training=True, output_
     return output
 
 
+def inner_model3(x, scope_name, reuse, is_color=False, is_training=False, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
+    if not is_color:        image_channel = 1
+    else:                   image_channel = 3
+
+    with tf.variable_scope(scope_name, reuse=reuse) as vscope:
+        input = x
+        with tf.variable_scope("feature_extraction", reuse=reuse) as scope:
+            x = conv(x, 64, kernel= 9, stride= 1, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+            if verbose :print(x)
+
+        with tf.variable_scope("feature_enhancement", reuse=reuse) as scope:
+            x = conv(x, 32, kernel= 1, stride= 2, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+
+            x = conv(x, 32, kernel= 7, stride= 1, scope = "conv_1")
+            x = lrelu(x, alpha=0.1)
+            if verbose :print(x)
+
+        with tf.variable_scope("mapping", reuse=reuse) as scope:
+            x = conv(x, 64, kernel= 1, stride= 1, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+
+        with tf.variable_scope("reconstruction", reuse=reuse) as scope:
+            x = conv(x, 4, kernel= 1, stride= 1, scope = "conv_0")
+            x = tf.depth_to_space(x, block_size=2)
+            if verbose: print(x)
+
+        output = x + input
+        if verbose: print(output)
+    return output
 
 """"================================================================
 * Build model 
@@ -78,6 +109,8 @@ def build_model(input_A,input_B, learning_rate, args=None):
         p_arcnn = partial(inner_model, is_color=False, is_training=True)
     elif args.g_type == 2:
         p_arcnn = partial(inner_model2, is_color=False, is_training=True)
+    elif args.g_type == 3:
+        p_arcnn = partial(inner_model3, is_color=False, is_training=True)
 
     """ for return """
     images = None
@@ -90,7 +123,6 @@ def build_model(input_A,input_B, learning_rate, args=None):
         input_A_y, input_A_uv = tf.split(input_A_yuv, [1,2], -1)
         input_B_yuv = tf.image.rgb_to_yuv(input_B)
         input_B_y, input_B_uv = tf.split(input_B_yuv, [1,2], -1)
-
         input_A_y_rec = p_arcnn(input_A_y, scope_name = "generator", reuse=False)
 
 
@@ -150,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument("--epoch", type=int, default=80)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--target_size", type=int, default=64)
-    parser.add_argument("--is_color", type=bool, default=False)
+    parser.add_argument("--is_color", type=bool, default=True)
 
     parser.add_argument("--stride_size", type=int, default=20)
     parser.add_argument("--deconv_stride", type = int, default = 2)
@@ -162,7 +194,7 @@ if __name__ == "__main__":
     parser.add_argument("--infer_imgpath", default="monarch.bmp")  # monarch.bmp
     parser.add_argument("--type", default="YCbCr", choices=["RGB","Gray","YCbCr"])#YCbCr type uses images preprocessesd by matlab
     parser.add_argument("--c_dim", type=int, default=3) # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
-    parser.add_argument("--g_type", type=int, default=2)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--g_type", type=int, default=3)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
 
     parser.add_argument("--mode", default="train", choices=["train", "cookbook", "inference", "test_plot"])
 
@@ -185,7 +217,6 @@ if __name__ == "__main__":
     BS,SZ,SZ,CH = (4,512,512,3)
     input_A = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_A')
     input_B = tf.placeholder(tf.float32, shape=[BS, SZ, SZ, CH], name='input_B')
-    inner_model(input_A,"ARCNN", reuse = False, is_color= False, verbose=True)
     build_model(input_A,input_B, learning_rate=0.1, args = args)
 
 

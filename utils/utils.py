@@ -13,6 +13,7 @@ import cv2
 from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
+import copy
 
 import io
 import time
@@ -20,26 +21,31 @@ import numpy as np
 from PIL import Image
 
 def cvt_jpeg(imgs):
+    imgs = copy.deepcopy(imgs)
     imgs_ = []
 
     start = time.clock()
-
+    nbytes_list = []
     for img in imgs:
         # Create BytesIO object
         output = io.BytesIO()
         im = Image.fromarray((img*255).astype(np.uint8))
         im.save(output, format='JPEG', quality=20)
         nbytes = output.getbuffer().nbytes
-        #print("BytesIO size: {}".format(nbytes))
-
-        # Read back images from BytesIO ito list
         imgs_.append(np.expand_dims(np.array(Image.open(output)),axis=0))
+
+        output_90 = io.BytesIO()
+        im = Image.fromarray((img*255).astype(np.uint8))
+        im.save(output_90, format='JPEG', quality=90)
+        nbytes_90 = output_90.getbuffer().nbytes
+        nbytes_list.append([nbytes, nbytes_90])
+
 
     imgs_ = np.concatenate(imgs_,axis=0).astype(np.float32)/255.0
     diff = time.clock() - start
     #print("Time: {}".format(diff))
     #print(imgs.shape)
-    return imgs_
+    return imgs_, nbytes_list
 
 def rgb2ycbcr(im):
     '''
