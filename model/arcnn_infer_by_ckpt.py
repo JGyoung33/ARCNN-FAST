@@ -21,13 +21,13 @@ class ARCNN_InferbyCKPT(object):
         new_saver.restore(self.sess,self.model_path)
         g=tf.get_default_graph()
 
-        """
+
         list = g.get_operations()
         for l in list :
             if l.name.__contains__("handler"):
                 print(l)
         pprint(list)
-        """
+
 
         self.image_test_A = g.get_tensor_by_name("input_Test_A:0")
         self.image_test_B = g.get_tensor_by_name("input_Test_B:0")

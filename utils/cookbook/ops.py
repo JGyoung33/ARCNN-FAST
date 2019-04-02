@@ -184,6 +184,16 @@ def conv_pixel_shuffle_down(x, scale_factor=2, use_bias=True, sn=False, scope='p
     return x
 
 
+
+def resize(x, scale=2.0):
+    return tf.image.resize_images(
+            x, [tf.cast(scale*tf.cast(tf.shape(x)[1], tf.float32), tf.int32),
+                    tf.cast(scale*tf.cast(tf.shape(x)[2], tf.float32), tf.int32)],
+            align_corners=True,
+            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+
+
 def fully_connected(x, units, use_bias=True, sn=False, scope='linear'):
     with tf.variable_scope(scope):
         x = flatten(x)

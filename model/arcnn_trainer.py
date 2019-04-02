@@ -181,7 +181,7 @@ if __name__ == '__main__':
     parser.add_argument("--g_type", type=int, default=3)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
 
     parser.add_argument("--learning_rate", type=float, default=1e-5)
-    parser.add_argument("--min_lr", type=float, default=1e-7)
+    parser.add_argument("--min_lr", type=float, default=1e-6)
     parser.add_argument("--lr_decay_rate", type=float, default=1e-1)
     parser.add_argument("--lr_step_size", type=int, default=20)  # 9999 for no decay
     parser.add_argument("--checkpoint_dir", default="../asset/checkpoint")
