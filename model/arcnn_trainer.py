@@ -19,7 +19,7 @@ def train(args, sess):
         os.path.normcase('../dataset/train/BSD400'),
         args.batch_size, args.target_size, is_color=True,seed = 0)
 
-    test_img_paths = sorted(glob(os.path.join(os.path.normcase('../dataset/test/Set5'),"*.*")))
+    test_img_paths = sorted(glob(os.path.join(os.path.normcase('../dataset/test/SetW'),"*.*")))
     test_imgs = []
     print(test_img_paths)
     for img_path in test_img_paths:
@@ -128,8 +128,7 @@ def train(args, sess):
                 summary_writer.add_summary(result_summary["summary"], global_step.eval())
                 summary_writer.flush()
 
-
-                dataTest = test_imgs[-1]
+                dataTest = test_imgs[global_step.eval()%len(test_imgs)]
                 dataTestA, bytes_list = cvt_jpeg(dataTest)
                 dataTestB = dataTest
 
@@ -177,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument("--scale", type=int, default=1)
     parser.add_argument("--jpgqfactor", type= int, default =60)
     parser.add_argument("--train_subdir", default="BSD400")
-    parser.add_argument("--test_subdir", default="Set5")
+    parser.add_argument("--test_subdir", default="SetW")
     parser.add_argument("--g_type", type=int, default=4)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
     parser.add_argument("--restore_model_file", type=str, default=None)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
     parser.add_argument("--learning_rate", type=float, default=1e-5)

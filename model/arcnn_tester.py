@@ -18,7 +18,7 @@ def train(args, sess):
 
     # =============================== training  =======================================
     """prepare dataset"""
-    img_paths = sorted(glob(os.path.join(os.path.normcase('../dataset/test/Set5'),"*.*")))
+    img_paths = sorted(glob(os.path.join(os.path.normcase('../dataset/test/SetW'),"*.*")))
     #imgs = [np.expand_dims(plt.imread(img_path),0) for img_path in img_paths]
 
     imgs = []
@@ -95,9 +95,9 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", type=str, default="ARCNN")
     parser.add_argument("--model_tag", type=str, default="default")
     parser.add_argument("--gpu", type=int, default=0)  # -1 for CPU
-    parser.add_argument("--test_dir", default="Set5")
-    parser.add_argument("--g_type", type=int, default=2)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
-    parser.add_argument("--restor_model_file", default="default")
+    parser.add_argument("--test_dir", default="SetW")
+    parser.add_argument("--g_type", type=int, default=3)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--restore_model_file", type=str, default=None)
     parser.add_argument("--checkpoint_dir", default="../asset/checkpoint/infer")
 
 

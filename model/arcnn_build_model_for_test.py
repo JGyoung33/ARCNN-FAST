@@ -99,6 +99,39 @@ def inner_model3(x, scope_name, reuse, is_color=False, is_training=False, output
 
     return output
 
+
+def inner_model4(x, scope_name, reuse, is_color=False, is_training=False, output_activation=tf.nn.sigmoid, norm_type=["instance_norm"], verbose = False):
+    if not is_color:        image_channel = 1
+    else:                   image_channel = 3
+
+    with tf.variable_scope(scope_name, reuse=reuse) as vscope:
+        input = x
+        with tf.variable_scope("feature_extraction", reuse=reuse) as scope:
+            x = conv(x, 64, kernel= 9, stride= 1, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+            if verbose :print(x)
+
+        with tf.variable_scope("feature_enhancement", reuse=reuse) as scope:
+            x = conv(x, 32, kernel= 1, stride= 2, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+
+            x = conv(x, 32, kernel= 7, stride= 1, scope = "conv_1")
+            x = lrelu(x, alpha=0.1)
+            if verbose :print(x)
+
+        with tf.variable_scope("mapping", reuse=reuse) as scope:
+            x = conv(x, 64, kernel= 1, stride= 1, scope = "conv_0")
+            x = lrelu(x, alpha=0.1)
+
+        with tf.variable_scope("reconstruction", reuse=reuse) as scope:
+            x = resize(x)
+            if verbose: print(x)
+            x = conv(x, 1, kernel= 1, stride= 1, scope = "conv_0")
+        output = x + input
+        if verbose: print(output)
+    return output
+
+
 """"================================================================
 * Build model 
 ================================================================="""
