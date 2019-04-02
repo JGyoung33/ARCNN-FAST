@@ -178,7 +178,7 @@ if __name__ == '__main__':
     parser.add_argument("--jpgqfactor", type= int, default =60)
     parser.add_argument("--train_subdir", default="BSD400")
     parser.add_argument("--test_subdir", default="Set5")
-    parser.add_argument("--g_type", type=int, default=3)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
+    parser.add_argument("--g_type", type=int, default=4)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
     parser.add_argument("--restore_model_file", type=str, default=None)  # 3 for RGB, 1 for Y chaanel of YCbCr (but not implemented yet)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--min_lr", type=float, default=1e-6)

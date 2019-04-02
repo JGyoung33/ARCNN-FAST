@@ -128,8 +128,8 @@ def inner_model4(x, scope_name, reuse, is_color=False, is_training=False, output
 
         with tf.variable_scope("reconstruction", reuse=reuse) as scope:
             x = resize(x)
-            x = conv(x, 64, kernel= 1, stride= 1, scope = "conv_0")
-
+            if verbose: print(x)
+            x = conv(x, 1, kernel= 1, stride= 1, scope = "conv_0")
         output = x + input
         if verbose: print(output)
     return output
