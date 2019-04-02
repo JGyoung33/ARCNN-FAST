@@ -338,7 +338,8 @@ def modcrop(image, scale=3):
 def restore_model(args, sess):
     t_vars = tf.global_variables()
     model_saver = tf.train.Saver(max_to_keep=100)
-    model_saver.restore(sess, args.restore_model_file)
+    if args.restore_model_file is not None:
+        model_saver.restore(sess, args.restore_model_file)
     step = 0
     return step
 

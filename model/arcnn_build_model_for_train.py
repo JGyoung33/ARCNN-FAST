@@ -145,6 +145,8 @@ def build_model(input_A,input_B, learning_rate, args=None):
         p_arcnn = partial(inner_model2, is_color=False, is_training=True)
     elif args.g_type == 3:
         p_arcnn = partial(inner_model3, is_color=False, is_training=True)
+    elif args.g_type == 4:
+        p_arcnn = partial(inner_model4, is_color=False, is_training=True)
 
     """ for return """
     images = None
